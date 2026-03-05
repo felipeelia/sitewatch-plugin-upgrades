@@ -43,22 +43,33 @@ Push and PR creation use the default `GITHUB_TOKEN`; no extra secrets are requir
 | `wp_plugins_dir` | Path to WordPress plugins directory (for version detection in paid-plugins flow) | `plugins` |
 | `paid_plugins_dir` | Directory containing paid plugin zips; leave empty to disable | `''` |
 | `separate_vendors_list` | Vendors to list in a separate “Additional packages updated” section (e.g. `phpstan`) | `phpstan` |
-| `composer_auth` | Optional [Composer auth JSON](https://getcomposer.org/doc/03-cli.md#composer-auth) for private packages (e.g. GitHub token). Set via secret. | `''` |
+| `composer_github_token` | GitHub token for Composer (sets `github-oauth.github.com`). Easiest way to allow private GitHub packages. | `''` |
+| `composer_auth` | Full [Composer auth JSON](https://getcomposer.org/doc/03-cli.md#composer-auth) for other hosts (e.g. GitLab). Use when you need more than GitHub. | `''` |
 | `php_version` | PHP version for the runner | `8.2` |
 
-## Composer auth (private packages)
+## Composer auth for private packages
 
-If you depend on private packages (e.g. 10up, premium), set the `composer_auth` input from a secret:
+**GitHub only (recommended):** Add a repo secret (e.g. `UI_KIT`) with a GitHub token that can read your private packages, then pass it in:
 
 ```yaml
-- uses: felipeelia/sitewatch-plugin-upgrades@trunk
+- uses: felipeelia/sitewatch-plugin-upgrades@main
   with:
     prod_branch: trunk
     staging_branch: staging
+    composer_github_token: ${{ secrets.UI_KIT }}
+```
+
+The action runs `composer config --global github-oauth.github.com <token>` before `composer update`. No JSON needed.
+
+**Other hosts (GitLab, etc.):** Use the `composer_auth` input with full JSON:
+
+```yaml
+- uses: felipeelia/sitewatch-plugin-upgrades@main
+  with:
     composer_auth: ${{ secrets.COMPOSER_AUTH }}
 ```
 
-`COMPOSER_AUTH` should be valid JSON, e.g. for GitHub:
+`COMPOSER_AUTH` should be valid JSON, e.g. for GitHub (if you prefer it over `composer_github_token`):
 
 ```json
 {"github-oauth":{"github.com":"YOUR_GITHUB_TOKEN"}}
@@ -69,6 +80,8 @@ Or for GitLab:
 ```json
 {"gitlab-token":{"gitlab.example.com":"YOUR_GITLAB_TOKEN"}}
 ```
+
+You can use both `composer_github_token` and `composer_auth` (e.g. GitHub token + GitLab token).
 
 ## Behaviour
 

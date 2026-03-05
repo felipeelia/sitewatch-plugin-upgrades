@@ -25,8 +25,12 @@ inputs:
     description: 'Vendors to show in separate list (e.g. phpstan)'
     required: false
     default: 'phpstan'
+  composer_github_token:
+    description: 'GitHub token for Composer (e.g. secrets.UI_KIT). Sets github-oauth.github.com so private packages can be installed.'
+    required: false
+    default: ''
   composer_auth:
-    description: 'Optional Composer auth JSON for private packages'
+    description: 'Optional full Composer auth JSON (for GitLab, etc.). Ignored if composer_github_token is set.'
     required: false
     default: ''
   php_version:
@@ -42,6 +46,14 @@ runs:
       with:
         php-version: ${{ inputs.php_version }}
         tools: composer
+
+    - name: Configure Composer GitHub token
+      if: inputs.composer_github_token != ''
+      env:
+        GITHUB_TOKEN_FOR_COMPOSER: ${{ inputs.composer_github_token }}
+      run: |
+        composer config --global github-oauth.github.com "$GITHUB_TOKEN_FOR_COMPOSER"
+      shell: bash
 
     - name: Run plugin upgrades script
       env:
