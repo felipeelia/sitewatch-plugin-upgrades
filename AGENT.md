@@ -11,7 +11,8 @@ This repo is a **reusable GitHub Action** for SiteWatch projects hosted on **Git
 | `action.yml` | Root composite action: backwards-compatible entry that runs the Plugin Upgrades script from `plugin-upgrades/`. Consumers using `uses: owner/repo@ref` (no path) get this. |
 | `plugin-upgrades/action.yml` | Plugin Upgrades composite action: inputs, PHP setup, script invocation, and `gh pr create` steps. Used when consumers reference `owner/repo/plugin-upgrades@ref`. |
 | `plugin-upgrades/plugin-upgrades-merge-request.sh` | Plugin Upgrades logic: Composer update with start/end markers, parsing upgrade output, paid-plugins version diff (optional), and writing the PR description to a temp file used by the action. |
-| `vuln-plugin-update/` | *(Planned)* Second action: vuln/plugin update and PR creation (single or multiple packages). |
+| `vuln-plugin-update/action.yml` | Vuln plugin update composite action: inputs, PHP + Composer auth, script run, Create PRs step. |
+| `vuln-plugin-update/vuln-plugin-update-and-mr.sh` | Vuln update logic: parse items (comma- or newline-separated), run composer/paid_plugin updates, write PR description(s) and manifest for action. |
 | `README.md` | Consumer-facing docs: actions table, usage, inputs, Composer auth, behaviour. |
 
 Each action lives in its own directory with `action.yml` and script(s) directly in that directory (no `scripts/` subfolder). Consumers add a workflow that checks out their repo and calls an action with the desired inputs (see **README.md**). The Plugin Upgrades action expects a Composer-based project (e.g. `composer.json` at repo root). No separate token is required for push/PR when targeting the same repo; use `composer_github_token` (or `composer_auth`) only for private packages.
@@ -45,6 +46,8 @@ Each action lives in its own directory with `action.yml` and script(s) directly 
 - **Root action (backwards compat)**: `action.yml` (script path to `plugin-upgrades/plugin-upgrades-merge-request.sh`).
 - **Plugin Upgrades action**: `plugin-upgrades/action.yml` (inputs, steps, env passed to script and `gh pr create`).
 - **Plugin Upgrades script**: `plugin-upgrades/plugin-upgrades-merge-request.sh` (Composer update, parsing, PR body generation, paid-plugins logic).
+- **Vuln plugin update action**: `vuln-plugin-update/action.yml` (inputs, Create PRs step for single_branch and branch_per_env).
+- **Vuln plugin update script**: `vuln-plugin-update/vuln-plugin-update-and-mr.sh` (update_items parsing, composer_dir, PR description + manifest output).
 - **Consumer-facing docs**: `README.md` (actions table, usage, inputs, Composer auth, behaviour, expected project layout).
 
 ## Testing and behaviour

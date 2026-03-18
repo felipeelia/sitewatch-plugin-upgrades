@@ -1,0 +1,125 @@
+name: 'Vuln Plugin Update'
+description: 'Update one or more plugins (composer or paid_plugin), push branch(es), and create PRs. For manual runs from the Actions tab; use comma-separated update_items for multiple packages.'
+inputs:
+  update_mode:
+    description: 'Update type for single-package (composer or paid_plugin)'
+    required: false
+    default: 'composer'
+  update_package:
+    description: 'Single package (composer name or paid plugin slug)'
+    required: false
+    default: ''
+  update_items:
+    description: 'Multiple packages: comma-separated mode:package (e.g. composer:wpackagist-plugin/wordpress-seo,paid_plugin:slug)'
+    required: false
+    default: ''
+  branch_strategy:
+    description: 'single_branch (one branch, PRs to all targets) or branch_per_env (one branch per target)'
+    required: false
+    default: 'single_branch'
+  source_branch:
+    description: 'For single_branch: branch to create from (empty = prod_branch)'
+    required: false
+    default: ''
+  prod_branch:
+    description: 'Production branch to open PR against'
+    required: false
+    default: 'trunk'
+  staging_branch:
+    description: 'Staging branch to open PR against'
+    required: false
+    default: 'staging'
+  additional_branches:
+    description: 'Space-separated list of extra target branches'
+    required: false
+    default: ''
+  composer_dir:
+    description: 'Directory to run Composer in (default . for wp-content-as-repo)'
+    required: false
+    default: '.'
+  wp_plugins_dir:
+    description: 'Path to WordPress plugins directory (for version detection)'
+    required: false
+    default: 'plugins'
+  composer_github_token:
+    description: 'GitHub token for Composer (e.g. secrets.UI_KIT)'
+    required: false
+    default: ''
+  composer_auth:
+    description: 'Optional full Composer auth JSON (for GitLab, etc.)'
+    required: false
+    default: ''
+  php_version:
+    description: 'PHP version for setup-php'
+    required: false
+    default: '8.2'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ inputs.php_version }}
+        tools: composer
+
+    - name: Configure Composer GitHub token
+      if: inputs.composer_github_token != ''
+      env:
+        GITHUB_TOKEN_FOR_COMPOSER: ${{ inputs.composer_github_token }}
+      run: |
+        composer config --global github-oauth.github.com "$GITHUB_TOKEN_FOR_COMPOSER"
+      shell: bash
+
+    - name: Run vuln plugin update script
+      env:
+        VULN_UPDATE_MODE: ${{ inputs.update_mode }}
+        VULN_UPDATE_PACKAGE: ${{ inputs.update_package }}
+        VULN_UPDATE_ITEMS: ${{ inputs.update_items }}
+        VULN_UPDATE_BRANCH_STRATEGY: ${{ inputs.branch_strategy }}
+        VULN_UPDATE_SOURCE_BRANCH: ${{ inputs.source_branch }}
+        PROD_BRANCH: ${{ inputs.prod_branch }}
+        STAGING_BRANCH: ${{ inputs.staging_branch }}
+        ADDITIONAL_BRANCHES: ${{ inputs.additional_branches }}
+        COMPOSER_DIR: ${{ inputs.composer_dir }}
+        WP_PLUGINS_DIR: ${{ inputs.wp_plugins_dir }}
+        COMPOSER_AUTH: ${{ inputs.composer_auth }}
+        PR_DESCRIPTION_FILE: ${{ runner.temp }}/vuln-pr-description.md
+        VULN_PR_MANIFEST: ${{ runner.temp }}/vuln-pr-manifest.txt
+        VULN_PR_BODY_DIR: ${{ runner.temp }}
+      run: |
+        bash "$GITHUB_ACTION_PATH/vuln-plugin-update-and-mr.sh"
+      shell: bash
+
+    - name: Create PRs
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PROD_BRANCH: ${{ inputs.prod_branch }}
+        STAGING_BRANCH: ${{ inputs.staging_branch }}
+        ADDITIONAL_BRANCHES: ${{ inputs.additional_branches }}
+        BRANCH_STRATEGY: ${{ inputs.branch_strategy }}
+      run: |
+        DATE_SUFFIX=$(date +%Y-%m-%d)
+        if [ "$BRANCH_STRATEGY" = "single_branch" ]; then
+          BRANCH_NAME="vuln-plugins/$DATE_SUFFIX"
+          BODY_FILE="${{ runner.temp }}/vuln-pr-description.md"
+          gh pr create --base "$PROD_BRANCH" --head "$BRANCH_NAME" \
+            --title "Vuln plugin update - $DATE_SUFFIX" --body-file "$BODY_FILE"
+          gh pr create --base "$STAGING_BRANCH" --head "$BRANCH_NAME" \
+            --title "Vuln plugin update - $DATE_SUFFIX (Staging)" --body-file "$BODY_FILE"
+          for branch in $ADDITIONAL_BRANCHES; do
+            [ -z "$branch" ] && continue
+            SUFFIX=$(echo "$branch" | sed 's/\//-/g')
+            gh pr create --base "$branch" --head "$BRANCH_NAME" \
+              --title "Vuln plugin update - $DATE_SUFFIX ($SUFFIX)" --body-file "$BODY_FILE"
+          done
+        else
+          MANIFEST="${{ runner.temp }}/vuln-pr-manifest.txt"
+          [ -f "$MANIFEST" ] || exit 0
+          while IFS=$'\t' read -r head_branch base_branch title body_file; do
+            [ -z "$head_branch" ] && continue
+            gh pr create --base "$base_branch" --head "$head_branch" \
+              --title "$title" --body-file "$body_file"
+          done < "$MANIFEST"
+        fi
+      shell: bash
