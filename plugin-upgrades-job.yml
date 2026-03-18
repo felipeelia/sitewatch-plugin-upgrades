@@ -1,0 +1,95 @@
+name: 'Plugin Upgrades PR'
+description: 'Run composer update, build PR description, push branch, and create PRs against trunk/staging (same repo).'
+inputs:
+  prod_branch:
+    description: 'Production branch to open PR against'
+    required: false
+    default: 'trunk'
+  staging_branch:
+    description: 'Staging branch to open PR against'
+    required: false
+    default: 'staging'
+  additional_branches:
+    description: 'Space-separated list of extra target branches for additional PRs'
+    required: false
+    default: ''
+  wp_plugins_dir:
+    description: 'Path to WordPress plugins directory (for version detection)'
+    required: false
+    default: 'plugins'
+  paid_plugins_dir:
+    description: 'Directory containing paid plugin zips (leave empty to disable)'
+    required: false
+    default: ''
+  separate_vendors_list:
+    description: 'Vendors to show in separate list (e.g. phpstan)'
+    required: false
+    default: 'phpstan'
+  composer_github_token:
+    description: 'GitHub token for Composer (e.g. secrets.UI_KIT). Sets github-oauth.github.com so private packages can be installed.'
+    required: false
+    default: ''
+  composer_auth:
+    description: 'Optional full Composer auth JSON (for GitLab, etc.). Ignored if composer_github_token is set.'
+    required: false
+    default: ''
+  php_version:
+    description: 'PHP version for setup-php'
+    required: false
+    default: '8.2'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ inputs.php_version }}
+        tools: composer
+
+    - name: Configure Composer GitHub token
+      if: inputs.composer_github_token != ''
+      env:
+        GITHUB_TOKEN_FOR_COMPOSER: ${{ inputs.composer_github_token }}
+      run: |
+        composer config --global github-oauth.github.com "$GITHUB_TOKEN_FOR_COMPOSER"
+      shell: bash
+
+    - name: Run plugin upgrades script
+      env:
+        PROD_BRANCH: ${{ inputs.prod_branch }}
+        STAGING_BRANCH: ${{ inputs.staging_branch }}
+        ADDITIONAL_BRANCHES: ${{ inputs.additional_branches }}
+        WP_PLUGINS_DIR: ${{ inputs.wp_plugins_dir }}
+        PAID_PLUGINS_DIR: ${{ inputs.paid_plugins_dir }}
+        SEPARATE_VENDORS_LIST: ${{ inputs.separate_vendors_list }}
+        PR_DESCRIPTION_FILE: ${{ runner.temp }}/pr-description.md
+        COMPOSER_AUTH: ${{ inputs.composer_auth }}
+      run: |
+        bash "$GITHUB_ACTION_PATH/plugin-upgrades/plugin-upgrades-merge-request.sh"
+      shell: bash
+
+    - name: Create PRs
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PROD_BRANCH: ${{ inputs.prod_branch }}
+        STAGING_BRANCH: ${{ inputs.staging_branch }}
+        ADDITIONAL_BRANCHES: ${{ inputs.additional_branches }}
+      run: |
+        MONTH_YEAR=$(date +"%Y-%m")
+        BRANCH_NAME="plugin-upgrades/$MONTH_YEAR"
+        BODY_FILE="${{ runner.temp }}/pr-description.md"
+
+        gh pr create --base "$PROD_BRANCH" --head "$BRANCH_NAME" \
+          --title "Plugin Upgrades - $MONTH_YEAR" --body-file "$BODY_FILE"
+
+        gh pr create --base "$STAGING_BRANCH" --head "$BRANCH_NAME" \
+          --title "Plugin Upgrades - $MONTH_YEAR (Staging)" --body-file "$BODY_FILE"
+
+        for branch in $ADDITIONAL_BRANCHES; do
+          [ -z "$branch" ] && continue
+          title_suffix=$(echo "$branch" | awk -F'/' '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1' OFS='/')
+          gh pr create --base "$branch" --head "$BRANCH_NAME" \
+            --title "Plugin Upgrades - $MONTH_YEAR ($title_suffix)" --body-file "$BODY_FILE"
+        done
+      shell: bash
