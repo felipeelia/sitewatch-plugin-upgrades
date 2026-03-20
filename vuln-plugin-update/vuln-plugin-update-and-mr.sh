@@ -193,7 +193,9 @@ if [ "$STRATEGY" = "single_branch" ]; then
 	done
 
 	echo "Staging changes and committing..."
+	rm -f auth.json "$COMPOSER_DIR/auth.json"
 	git add -A .
+	git reset HEAD -- "$COMPOSER_DIR/composer.json" 2>/dev/null || true
 	git diff --staged --quiet && { rm -rf "$TEMPD"; echo "No changes after update."; exit 1; }
 	git commit -m "Vuln plugin update - ${DATE_SUFFIX} (${PACKAGE_LIST})" --no-verify
 	echo "Pushing branch $BRANCH_NAME to origin..."
@@ -254,7 +256,9 @@ else
 			fi
 		done
 
+		rm -f auth.json "$COMPOSER_DIR/auth.json"
 		git add -A .
+		git reset HEAD -- "$COMPOSER_DIR/composer.json" 2>/dev/null || true
 		if git diff --staged --quiet; then
 			rm -rf "$TEMPD"
 			echo "No changes after update for $TARGET, skipping."

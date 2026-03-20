@@ -246,7 +246,9 @@ git config user.email "github-actions[bot]@users.noreply.github.com"
 
 echo "Creating the new branch"
 git checkout -B "$BRANCH_NAME"
+rm -f auth.json
 git add -A .
+git reset HEAD -- composer.json 2>/dev/null || true
 git commit -m "Plugin Upgrades - $MONTH_YEAR" --no-verify
 
 echo "Pushing the new branch"
