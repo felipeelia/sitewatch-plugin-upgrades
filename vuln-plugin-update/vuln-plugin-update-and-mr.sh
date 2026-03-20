@@ -200,8 +200,8 @@ if [ "$STRATEGY" = "single_branch" ]; then
 	rm -f auth.json "$COMPOSER_DIR/auth.json"
 	if [ "$REVERT_COMPOSER_LOCK_AUTH" = "true" ] && [ -f "$COMPOSER_DIR/composer.lock" ]; then
 		echo "Reverting composer.lock from https back to git URLs"
-		sed -i 's|https://gitlab\.10up\.com/\([^/]*\)/\([^/]*\)\.git|git@gitlab.10up.com:\1/\2.git|g' "$COMPOSER_DIR/composer.lock"
-		sed -i 's|https://gitlab\.10up\.com/\([^/]*\)/\([^/]*\)|git@gitlab.10up.com:\1/\2.git|g' "$COMPOSER_DIR/composer.lock"
+		sed -i 's|"url": "https://gitlab\.10up\.com/\([^/]*\)/\([^"]*\)\.git"|"url": "git@gitlab.10up.com:\1/\2.git"|g' "$COMPOSER_DIR/composer.lock"
+		sed -i 's|"url": "https://gitlab\.10up\.com/\([^/]*\)/\([^"]*\)"|"url": "git@gitlab.10up.com:\1/\2.git"|g' "$COMPOSER_DIR/composer.lock"
 	fi
 	git add -A .
 	git diff --staged --quiet && { rm -rf "$TEMPD"; echo "No changes after update."; exit 1; }
@@ -267,8 +267,8 @@ else
 		rm -f auth.json "$COMPOSER_DIR/auth.json"
 		if [ "$REVERT_COMPOSER_LOCK_AUTH" = "true" ] && [ -f "$COMPOSER_DIR/composer.lock" ]; then
 			echo "Reverting composer.lock from https back to git URLs"
-			sed -i 's|https://gitlab\.10up\.com/\([^/]*\)/\([^/]*\)\.git|git@gitlab.10up.com:\1/\2.git|g' "$COMPOSER_DIR/composer.lock"
-			sed -i 's|https://gitlab\.10up\.com/\([^/]*\)/\([^/]*\)|git@gitlab.10up.com:\1/\2.git|g' "$COMPOSER_DIR/composer.lock"
+			sed -i 's|"url": "https://gitlab\.10up\.com/\([^/]*\)/\([^"]*\)\.git"|"url": "git@gitlab.10up.com:\1/\2.git"|g' "$COMPOSER_DIR/composer.lock"
+			sed -i 's|"url": "https://gitlab\.10up\.com/\([^/]*\)/\([^"]*\)"|"url": "git@gitlab.10up.com:\1/\2.git"|g' "$COMPOSER_DIR/composer.lock"
 		fi
 		git add -A .
 		if git diff --staged --quiet; then
