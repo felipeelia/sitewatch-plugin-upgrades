@@ -37,6 +37,10 @@ inputs:
     description: 'PHP version for setup-php'
     required: false
     default: '8.2'
+  revert_composer_lock_auth:
+    description: 'Revert composer.lock from https back to git URLs before pushing (for consumers using Setup Composer Auth for GitLab)'
+    required: false
+    default: 'true'
 
 runs:
   using: 'composite'
@@ -65,6 +69,7 @@ runs:
         SEPARATE_VENDORS_LIST: ${{ inputs.separate_vendors_list }}
         PR_DESCRIPTION_FILE: ${{ runner.temp }}/pr-description.md
         COMPOSER_AUTH: ${{ inputs.composer_auth }}
+        REVERT_COMPOSER_LOCK_AUTH: ${{ inputs.revert_composer_lock_auth }}
       run: |
         bash "$GITHUB_ACTION_PATH/plugin-upgrades-merge-request.sh"
       shell: bash

@@ -53,6 +53,10 @@ inputs:
     description: 'PHP version for setup-php'
     required: false
     default: '8.2'
+  revert_composer_lock_auth:
+    description: 'Revert composer.lock from https back to git URLs before pushing (for consumers using Setup Composer Auth for GitLab)'
+    required: false
+    default: 'true'
 
 runs:
   using: 'composite'
@@ -84,6 +88,7 @@ runs:
         COMPOSER_DIR: ${{ inputs.composer_dir }}
         WP_PLUGINS_DIR: ${{ inputs.wp_plugins_dir }}
         COMPOSER_AUTH: ${{ inputs.composer_auth }}
+        REVERT_COMPOSER_LOCK_AUTH: ${{ inputs.revert_composer_lock_auth }}
         PR_DESCRIPTION_FILE: ${{ runner.temp }}/vuln-pr-description.md
         VULN_PR_MANIFEST: ${{ runner.temp }}/vuln-pr-manifest.txt
         VULN_PR_BODY_DIR: ${{ runner.temp }}

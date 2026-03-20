@@ -22,6 +22,10 @@ DATE_SUFFIX=$(date +%Y-%m-%d)
 COMPOSER_DIR="${COMPOSER_DIR:-.}"
 WP_PLUGINS_DIR="${WP_PLUGINS_DIR:-wordpress/wp-content/plugins}"
 
+# Revert composer.lock from https back to git URLs before pushing (for consumers that run
+# Setup Composer Auth to allow GitHub Actions to access private GitLab repos).
+REVERT_COMPOSER_LOCK_AUTH="${REVERT_COMPOSER_LOCK_AUTH:-true}"
+
 # --- Build list of (mode, package) items: comma-separated (manual UI) or newline-separated ---
 VULN_ITEMS=""
 if [ -n "${VULN_UPDATE_ITEMS:-}" ]; then
@@ -194,8 +198,12 @@ if [ "$STRATEGY" = "single_branch" ]; then
 
 	echo "Staging changes and committing..."
 	rm -f auth.json "$COMPOSER_DIR/auth.json"
+	if [ "$REVERT_COMPOSER_LOCK_AUTH" = "true" ] && [ -f "$COMPOSER_DIR/composer.lock" ]; then
+		echo "Reverting composer.lock from https back to git URLs"
+		sed -i 's|https://gitlab\.10up\.com/\([^/]*\)/\([^/]*\)\.git|git@gitlab.10up.com:\1/\2.git|g' "$COMPOSER_DIR/composer.lock"
+		sed -i 's|https://gitlab\.10up\.com/\([^/]*\)/\([^/]*\)|git@gitlab.10up.com:\1/\2.git|g' "$COMPOSER_DIR/composer.lock"
+	fi
 	git add -A .
-	git reset HEAD -- "$COMPOSER_DIR/composer.json" 2>/dev/null || true
 	git diff --staged --quiet && { rm -rf "$TEMPD"; echo "No changes after update."; exit 1; }
 	git commit -m "Vuln plugin update - ${DATE_SUFFIX} (${PACKAGE_LIST})" --no-verify
 	echo "Pushing branch $BRANCH_NAME to origin..."
@@ -257,8 +265,12 @@ else
 		done
 
 		rm -f auth.json "$COMPOSER_DIR/auth.json"
+		if [ "$REVERT_COMPOSER_LOCK_AUTH" = "true" ] && [ -f "$COMPOSER_DIR/composer.lock" ]; then
+			echo "Reverting composer.lock from https back to git URLs"
+			sed -i 's|https://gitlab\.10up\.com/\([^/]*\)/\([^/]*\)\.git|git@gitlab.10up.com:\1/\2.git|g' "$COMPOSER_DIR/composer.lock"
+			sed -i 's|https://gitlab\.10up\.com/\([^/]*\)/\([^/]*\)|git@gitlab.10up.com:\1/\2.git|g' "$COMPOSER_DIR/composer.lock"
+		fi
 		git add -A .
-		git reset HEAD -- "$COMPOSER_DIR/composer.json" 2>/dev/null || true
 		if git diff --staged --quiet; then
 			rm -rf "$TEMPD"
 			echo "No changes after update for $TARGET, skipping."

@@ -19,6 +19,10 @@ WP_PLUGINS_DIR="${WP_PLUGINS_DIR:-plugins}"
 # Where to write the PR description (action reads this for gh pr create).
 PR_DESCRIPTION_FILE="${PR_DESCRIPTION_FILE:-}"
 
+# Revert composer.lock from https back to git URLs before pushing (for consumers that run
+# Setup Composer Auth to allow GitHub Actions to access private GitLab repos).
+REVERT_COMPOSER_LOCK_AUTH="${REVERT_COMPOSER_LOCK_AUTH:-true}"
+
 # Capitalize branch name for PR title: develop -> Develop, feature/foo -> Feature/Foo
 capitalize_branch() {
 	echo "$1" | awk -F'/' '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1' OFS='/'
@@ -247,8 +251,12 @@ git config user.email "github-actions[bot]@users.noreply.github.com"
 echo "Creating the new branch"
 git checkout -B "$BRANCH_NAME"
 rm -f auth.json
+if [ "$REVERT_COMPOSER_LOCK_AUTH" = "true" ] && [ -f "composer.lock" ]; then
+	echo "Reverting composer.lock from https back to git URLs"
+	sed -i 's|https://gitlab\.10up\.com/\([^/]*\)/\([^/]*\)\.git|git@gitlab.10up.com:\1/\2.git|g' composer.lock
+	sed -i 's|https://gitlab\.10up\.com/\([^/]*\)/\([^/]*\)|git@gitlab.10up.com:\1/\2.git|g' composer.lock
+fi
 git add -A .
-git reset HEAD -- composer.json 2>/dev/null || true
 git commit -m "Plugin Upgrades - $MONTH_YEAR" --no-verify
 
 echo "Pushing the new branch"
