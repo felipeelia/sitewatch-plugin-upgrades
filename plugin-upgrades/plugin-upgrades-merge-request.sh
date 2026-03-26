@@ -204,7 +204,7 @@ echo "Running Composer update"
 set +e
 {
 	echo "--- Composer update - start ---"
-	composer update
+	composer update -W
 	COMPOSER_EXIT=$?
 	echo "--- Composer update - end ---"
 	exit "$COMPOSER_EXIT"

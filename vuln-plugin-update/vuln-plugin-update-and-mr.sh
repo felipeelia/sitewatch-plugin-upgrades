@@ -133,7 +133,7 @@ run_update() {
 	local mode="$1"
 	local package="$2"
 	if [ "$mode" = "composer" ]; then
-		echo "Running: composer update $package in $COMPOSER_DIR"
+		echo "Running: composer update -W $package in $COMPOSER_DIR"
 		pushd "$COMPOSER_DIR"
 			COMPOSER_SCAN_NO_FAIL=1
 			export COMPOSER_SCAN_NO_FAIL
@@ -141,8 +141,8 @@ run_update() {
 				echo "Running composer-config.sh..."
 				../bin/composer-config.sh
 			fi
-			echo "Running composer update $package..."
-			composer update "$package" --no-interaction
+			echo "Running composer update -W $package..."
+			composer update "$package" -W --no-interaction
 			unset COMPOSER_SCAN_NO_FAIL
 			export COMPOSER_SCAN_NO_FAIL
 		popd
