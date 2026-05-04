@@ -134,7 +134,7 @@ build_mr_description() {
 	local parsed_content
 	parsed_content=$(parse_composer_upgrades "$log_file")
 	local main_content
-	main_content=$(echo "$parsed_content" | format_main_list | sort)
+	main_content=$(echo "$parsed_content" | format_main_list | sort -u)
 	if [ -n "$paid_plugins_list" ]; then
 		main_content=$(printf '%s\n%s' "$main_content" "$paid_plugins_list" | sort -u)
 	fi
