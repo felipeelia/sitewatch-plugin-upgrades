@@ -8,7 +8,7 @@ STAGING_BRANCH="${STAGING_BRANCH:-staging}"
 ADDITIONAL_BRANCHES="${ADDITIONAL_BRANCHES:-}"
 
 # Vendors to show in a separate list with full vendor/package.
-SEPARATE_VENDORS_LIST="${SEPARATE_VENDORS_LIST:-phpstan}"
+SEPARATE_VENDORS_LIST="${SEPARATE_VENDORS_LIST:-phpstan php-stubs illuminate phpcsstandards symfony wp-coding-standards}"
 
 # Directory containing paid plugin zips; leave empty to disable tracking.
 PAID_PLUGINS_DIR="${PAID_PLUGINS_DIR:-}"

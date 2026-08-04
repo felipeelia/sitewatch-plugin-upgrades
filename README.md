@@ -49,7 +49,7 @@ Push and PR creation use the default `GITHUB_TOKEN`; no extra secrets are requir
 | `additional_branches` | Space-separated list of extra target branches (each gets its own PR) | `''` |
 | `wp_plugins_dir` | Path to WordPress plugins directory (for version detection in paid-plugins flow) | `plugins` |
 | `paid_plugins_dir` | Directory containing paid plugin zips; leave empty to disable | `''` |
-| `separate_vendors_list` | Vendors to list in a separate “Additional packages updated” section (e.g. `phpstan`) | `phpstan` |
+| `separate_vendors_list` | Vendors to list in a separate “Additional packages updated” section | `phpstan php-stubs illuminate phpcsstandards symfony wp-coding-standards` |
 | `composer_github_token` | GitHub token for Composer (sets `github-oauth.github.com`). Easiest way to allow private GitHub packages. | `''` |
 | `composer_auth` | Full [Composer auth JSON](https://getcomposer.org/doc/03-cli.md#composer-auth) for other hosts (e.g. GitLab). Use when you need more than GitHub. | `''` |
 | `php_version` | PHP version for the runner | `8.2` |

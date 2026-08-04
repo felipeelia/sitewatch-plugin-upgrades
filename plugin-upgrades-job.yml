@@ -22,9 +22,9 @@ inputs:
     required: false
     default: ''
   separate_vendors_list:
-    description: 'Vendors to show in separate list (e.g. phpstan)'
+    description: 'Vendors to show in separate list (e.g. phpstan php-stubs)'
     required: false
-    default: 'phpstan'
+    default: 'phpstan php-stubs illuminate phpcsstandards symfony wp-coding-standards'
   composer_github_token:
     description: 'GitHub token for Composer (e.g. secrets.UI_KIT). Sets github-oauth.github.com so private packages can be installed.'
     required: false
