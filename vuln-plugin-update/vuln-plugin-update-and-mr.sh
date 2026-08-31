@@ -10,6 +10,7 @@
 # Reads from env: PROD_BRANCH, STAGING_BRANCH, ADDITIONAL_BRANCHES,
 #                 PR_DESCRIPTION_FILE (single_branch), VULN_PR_MANIFEST + VULN_PR_BODY_DIR (branch_per_env).
 # Optional: COMPOSER_DIR (default .), WP_PLUGINS_DIR (default wordpress/wp-content/plugins).
+# Optional: VULN_UPDATE_KIND (vulnerable|on_demand, default vulnerable) — PR title, commit, and branch prefix.
 #
 set -eo pipefail
 
@@ -25,6 +26,19 @@ WP_PLUGINS_DIR="${WP_PLUGINS_DIR:-wordpress/wp-content/plugins}"
 # Revert composer.lock from https back to git URLs before pushing (for consumers that run
 # Setup Composer Auth to allow GitHub Actions to access private GitLab repos).
 REVERT_COMPOSER_LOCK_AUTH="${REVERT_COMPOSER_LOCK_AUTH:-true}"
+
+VULN_UPDATE_KIND="${VULN_UPDATE_KIND:-vulnerable}"
+if [ "$VULN_UPDATE_KIND" = "on_demand" ]; then
+	TITLE_PREFIX="On-demand plugin update"
+	BRANCH_PREFIX="on-demand-plugins"
+else
+	TITLE_PREFIX="Vuln plugin update"
+	BRANCH_PREFIX="vuln-plugins"
+fi
+if [ -n "${GITHUB_ENV:-}" ]; then
+	echo "VULN_TITLE_PREFIX=$TITLE_PREFIX" >> "$GITHUB_ENV"
+	echo "VULN_BRANCH_PREFIX=$BRANCH_PREFIX" >> "$GITHUB_ENV"
+fi
 
 # --- Build list of (mode, package) items: comma-separated (manual UI) or newline-separated ---
 VULN_ITEMS=""
@@ -82,8 +96,8 @@ if [ "$STRATEGY" != "single_branch" ] && [ "$STRATEGY" != "branch_per_env" ]; th
 	exit 1
 fi
 
-echo "=== Vuln plugin update ==="
-echo "Packages: $PACKAGE_LIST | Strategy: $STRATEGY | Date suffix: $DATE_SUFFIX"
+echo "=== ${TITLE_PREFIX} ==="
+echo "Packages: $PACKAGE_LIST | Strategy: $STRATEGY | Kind: $VULN_UPDATE_KIND | Date suffix: $DATE_SUFFIX"
 
 # --- Helpers ---
 get_plugin_version() {
@@ -160,7 +174,7 @@ git config user.email "github-actions[bot]@users.noreply.github.com"
 
 if [ "$STRATEGY" = "single_branch" ]; then
 	[ -z "$SOURCE_BRANCH" ] && SOURCE_BRANCH="$PROD_BRANCH"
-	BRANCH_NAME="vuln-plugins/${DATE_SUFFIX}"
+	BRANCH_NAME="${BRANCH_PREFIX}/${DATE_SUFFIX}"
 	echo "Strategy: single_branch | Source branch: $SOURCE_BRANCH | New branch: $BRANCH_NAME"
 	git fetch origin "$SOURCE_BRANCH"
 	git checkout -B "$BRANCH_NAME" "origin/$SOURCE_BRANCH"
@@ -205,7 +219,7 @@ if [ "$STRATEGY" = "single_branch" ]; then
 	fi
 	git add -A .
 	git diff --staged --quiet && { rm -rf "$TEMPD"; echo "No changes after update."; exit 1; }
-	git commit -m "Vuln plugin update - ${DATE_SUFFIX} (${PACKAGE_LIST})" --no-verify
+	git commit -m "${TITLE_PREFIX} - ${DATE_SUFFIX} (${PACKAGE_LIST})" --no-verify
 	echo "Pushing branch $BRANCH_NAME to origin..."
 	git push --set-upstream origin "$BRANCH_NAME"
 
@@ -225,10 +239,10 @@ else
 		git fetch origin "$TARGET" 2>/dev/null || { echo "Could not fetch $TARGET, skipping."; continue; }
 
 		if [ "$TARGET" = "$PROD_BRANCH" ]; then
-			BRANCH_NAME="vuln-plugins/${DATE_SUFFIX}"
+			BRANCH_NAME="${BRANCH_PREFIX}/${DATE_SUFFIX}"
 		else
 			SUFFIX_SLUG=$(echo "$TARGET" | tr '/' '-')
-			BRANCH_NAME="vuln-plugins-${SUFFIX_SLUG}/${DATE_SUFFIX}"
+			BRANCH_NAME="${BRANCH_PREFIX}-${SUFFIX_SLUG}/${DATE_SUFFIX}"
 		fi
 		echo "Creating branch $BRANCH_NAME from origin/$TARGET"
 		git checkout -B "$BRANCH_NAME" "origin/$TARGET" 2>/dev/null || { echo "Could not checkout $TARGET, skipping."; continue; }
@@ -277,12 +291,12 @@ else
 			continue
 		fi
 		echo "Committing and pushing $BRANCH_NAME..."
-		git commit -m "Vuln plugin update - ${DATE_SUFFIX} (${PACKAGE_LIST})" --no-verify
+		git commit -m "${TITLE_PREFIX} - ${DATE_SUFFIX} (${PACKAGE_LIST})" --no-verify
 		git push --set-upstream origin "$BRANCH_NAME"
 
 		build_mr_description "$VERSION_FILE" "$LOG_FILE" "$TEMPD/mr-description.md"
 		SUFFIX_LABEL=$(echo "$TARGET" | sed 's/\// /g')
-		[ "$TARGET" = "$PROD_BRANCH" ] && MR_TITLE="Vuln plugin update - ${DATE_SUFFIX}" || MR_TITLE="Vuln plugin update - ${DATE_SUFFIX} (${SUFFIX_LABEL})"
+		[ "$TARGET" = "$PROD_BRANCH" ] && MR_TITLE="${TITLE_PREFIX} - ${DATE_SUFFIX}" || MR_TITLE="${TITLE_PREFIX} - ${DATE_SUFFIX} (${SUFFIX_LABEL})"
 
 		if [ -n "${VULN_PR_MANIFEST:-}" ] && [ -n "${VULN_PR_BODY_DIR:-}" ]; then
 			PR_INDEX=$((PR_INDEX + 1))

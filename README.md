@@ -128,6 +128,12 @@ on:
         default: single_branch
         type: choice
         options: [single_branch, branch_per_env]
+      update_kind:
+        description: 'PR title/branch kind'
+        required: false
+        default: vulnerable
+        type: choice
+        options: [vulnerable, on_demand]
 
 jobs:
   vuln-update:
@@ -142,6 +148,7 @@ jobs:
           update_package: ${{ inputs.update_package }}
           update_items: ${{ inputs.update_items }}
           branch_strategy: ${{ inputs.branch_strategy }}
+          update_kind: ${{ inputs.update_kind }}
           prod_branch: production
           staging_branch: preprod
           composer_github_token: ${{ secrets.UI_KIT }}
@@ -156,6 +163,7 @@ Use either **single-package** (`update_mode` + `update_package`) or **multiple p
 | `update_mode` | Update type for single-package: `composer` or `paid_plugin` | `composer` |
 | `update_package` | Single package (composer name or paid plugin slug) | `''` |
 | `update_items` | Multiple packages: **comma-separated** `mode:package` (e.g. `composer:wpackagist-plugin/wordpress-seo,paid_plugin:slug`) | `''` |
+| `update_kind` | `vulnerable` (default) or `on_demand`. Changes PR title, commit message, and branch prefix (`vuln-plugins/` vs `on-demand-plugins/`). Required on `workflow_dispatch` for on-demand runs from jira-tickets-automation. | `vulnerable` |
 | `branch_strategy` | `single_branch` (one branch, PRs to all targets) or `branch_per_env` (one branch per target) | `single_branch` |
 | `source_branch` | For single_branch: branch to create from (empty = prod_branch) | `''` |
 | `prod_branch` | Branch to open the main PR against | `trunk` |

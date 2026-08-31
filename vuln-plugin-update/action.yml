@@ -57,6 +57,10 @@ inputs:
     description: 'Revert composer.lock from https back to git URLs before pushing (for consumers using Setup Composer Auth for GitLab)'
     required: false
     default: 'true'
+  update_kind:
+    description: 'PR title/branch kind: vulnerable (default) or on_demand'
+    required: false
+    default: 'vulnerable'
 
 runs:
   using: 'composite'
@@ -89,6 +93,7 @@ runs:
         WP_PLUGINS_DIR: ${{ inputs.wp_plugins_dir }}
         COMPOSER_AUTH: ${{ inputs.composer_auth }}
         REVERT_COMPOSER_LOCK_AUTH: ${{ inputs.revert_composer_lock_auth }}
+        VULN_UPDATE_KIND: ${{ inputs.update_kind }}
         PR_DESCRIPTION_FILE: ${{ runner.temp }}/vuln-pr-description.md
         VULN_PR_MANIFEST: ${{ runner.temp }}/vuln-pr-manifest.txt
         VULN_PR_BODY_DIR: ${{ runner.temp }}
@@ -105,18 +110,20 @@ runs:
         BRANCH_STRATEGY: ${{ inputs.branch_strategy }}
       run: |
         DATE_SUFFIX=$(date +%Y-%m-%d)
+        TITLE_PREFIX="${VULN_TITLE_PREFIX:-Vuln plugin update}"
+        BRANCH_PREFIX="${VULN_BRANCH_PREFIX:-vuln-plugins}"
         if [ "$BRANCH_STRATEGY" = "single_branch" ]; then
-          BRANCH_NAME="vuln-plugins/$DATE_SUFFIX"
+          BRANCH_NAME="${BRANCH_PREFIX}/$DATE_SUFFIX"
           BODY_FILE="${{ runner.temp }}/vuln-pr-description.md"
           gh pr create --base "$PROD_BRANCH" --head "$BRANCH_NAME" \
-            --title "Vuln plugin update - $DATE_SUFFIX" --body-file "$BODY_FILE"
+            --title "$TITLE_PREFIX - $DATE_SUFFIX" --body-file "$BODY_FILE"
           gh pr create --base "$STAGING_BRANCH" --head "$BRANCH_NAME" \
-            --title "Vuln plugin update - $DATE_SUFFIX (Staging)" --body-file "$BODY_FILE"
+            --title "$TITLE_PREFIX - $DATE_SUFFIX (Staging)" --body-file "$BODY_FILE"
           for branch in $ADDITIONAL_BRANCHES; do
             [ -z "$branch" ] && continue
             SUFFIX=$(echo "$branch" | sed 's/\//-/g')
             gh pr create --base "$branch" --head "$BRANCH_NAME" \
-              --title "Vuln plugin update - $DATE_SUFFIX ($SUFFIX)" --body-file "$BODY_FILE"
+              --title "$TITLE_PREFIX - $DATE_SUFFIX ($SUFFIX)" --body-file "$BODY_FILE"
           done
         else
           MANIFEST="${{ runner.temp }}/vuln-pr-manifest.txt"
