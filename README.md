@@ -45,7 +45,7 @@ Push and PR creation use the default `GITHUB_TOKEN`; no extra secrets are requir
 | Input | Description | Default |
 |-------|-------------|---------|
 | `prod_branch` | Branch to open the main upgrade PR against | `trunk` |
-| `staging_branch` | Branch to open the staging upgrade PR against | `staging` |
+| `staging_branch` | Branch to open the staging upgrade PR against. Set to `''` if the project has no staging branch | `staging` |
 | `additional_branches` | Space-separated list of extra target branches (each gets its own PR) | `''` |
 | `wp_plugins_dir` | Path to WordPress plugins directory (for version detection in paid-plugins flow) | `plugins` |
 | `paid_plugins_dir` | Directory containing paid plugin zips; leave empty to disable | `''` |

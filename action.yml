@@ -6,7 +6,7 @@ inputs:
     required: false
     default: 'trunk'
   staging_branch:
-    description: 'Staging branch to open PR against'
+    description: 'Staging branch to open PR against. Set to an empty string to skip the staging PR.'
     required: false
     default: 'staging'
   additional_branches:
@@ -83,8 +83,10 @@ runs:
         gh pr create --base "$PROD_BRANCH" --head "$BRANCH_NAME" \
           --title "Plugin Upgrades - $MONTH_YEAR" --body-file "$BODY_FILE"
 
-        gh pr create --base "$STAGING_BRANCH" --head "$BRANCH_NAME" \
-          --title "Plugin Upgrades - $MONTH_YEAR (Staging)" --body-file "$BODY_FILE"
+        if [ -n "$STAGING_BRANCH" ]; then
+          gh pr create --base "$STAGING_BRANCH" --head "$BRANCH_NAME" \
+            --title "Plugin Upgrades - $MONTH_YEAR (Staging)" --body-file "$BODY_FILE"
+        fi
 
         for branch in $ADDITIONAL_BRANCHES; do
           [ -z "$branch" ] && continue
