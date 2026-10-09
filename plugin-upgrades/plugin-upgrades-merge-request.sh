@@ -4,7 +4,7 @@ set -eo pipefail
 
 # Branch and list vars; set by GitHub Action or defaults.
 PROD_BRANCH="${PROD_BRANCH:-trunk}"
-STAGING_BRANCH="${STAGING_BRANCH:-staging}"
+STAGING_BRANCH="${STAGING_BRANCH-staging}"
 ADDITIONAL_BRANCHES="${ADDITIONAL_BRANCHES:-}"
 
 # Vendors to show in a separate list with full vendor/package.
